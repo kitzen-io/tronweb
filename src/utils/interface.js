@@ -123,11 +123,11 @@ export class Interface {
      *  If receiving ether is supported.
      */
     receive;
-    #errors;
-    #events;
-    #functions;
+    _errors;
+    _events;
+    _functions;
     //    #structs: Map<string, StructFragment>;
-    #abiCoder;
+    _abiCoder;
     /**
      *  Create a new Interface for the %%fragments%%.
      */
@@ -139,9 +139,9 @@ export class Interface {
         else {
             abi = fragments;
         }
-        this.#functions = new Map();
-        this.#errors = new Map();
-        this.#events = new Map();
+        this._functions = new Map();
+        this._errors = new Map();
+        this._events = new Map();
         //        this.#structs = new Map();
         const frags = [];
         for (const a of abi) {
@@ -157,7 +157,7 @@ export class Interface {
         });
         let fallback = null;
         let receive = false;
-        this.#abiCoder = this.getAbiCoder();
+        this._abiCoder = this.getAbiCoder();
         // Add all fragments by their signature
         this.fragments.forEach((fragment, index) => {
             let bucket;
@@ -183,14 +183,14 @@ export class Interface {
                 case "function":
                     //checkNames(fragment, "input", fragment.inputs);
                     //checkNames(fragment, "output", (<FunctionFragment>fragment).outputs);
-                    bucket = this.#functions;
+                    bucket = this._functions;
                     break;
                 case "event":
                     //checkNames(fragment, "input", fragment.inputs);
-                    bucket = this.#events;
+                    bucket = this._events;
                     break;
                 case "error":
-                    bucket = this.#errors;
+                    bucket = this._errors;
                     break;
                 default:
                     return;
@@ -237,11 +237,11 @@ export class Interface {
         return AbiCoder.defaultAbiCoder();
     }
     // Find a function definition by any means necessary (unless it is ambiguous)
-    #getFunction(key, values, forceUnique) {
+    _getFunction(key, values, forceUnique) {
         // Selector
         if (isHexString(key)) {
             const selector = key.toLowerCase();
-            for (const fragment of this.#functions.values()) {
+            for (const fragment of this._functions.values()) {
                 if (selector === fragment.selector) {
                     return fragment;
                 }
@@ -251,7 +251,7 @@ export class Interface {
         // It is a bare name, look up the function (will return null if ambiguous)
         if (key.indexOf("(") === -1) {
             const matching = [];
-            for (const [name, fragment] of this.#functions) {
+            for (const [name, fragment] of this._functions) {
                 if (name.split("(" /* fix:) */)[0] === key) {
                     matching.push(fragment);
                 }
@@ -314,7 +314,7 @@ export class Interface {
             return matching[0];
         }
         // Normalize the signature and lookup the function
-        const result = this.#functions.get(FunctionFragment.from(key).format());
+        const result = this._functions.get(FunctionFragment.from(key).format());
         if (result) {
             return result;
         }
@@ -325,7 +325,7 @@ export class Interface {
      *  function name or function signature that belongs to the ABI.
      */
     getFunctionName(key) {
-        const fragment = this.#getFunction(key, null, false);
+        const fragment = this._getFunction(key, null, false);
         assertArgument(fragment, "no matching function", "key", key);
         return fragment.name;
     }
@@ -340,25 +340,25 @@ export class Interface {
      *  the ABI, this will throw.
      */
     getFunction(key, values) {
-        return this.#getFunction(key, values || null, true);
+        return this._getFunction(key, values || null, true);
     }
     /**
      *  Iterate over all functions, calling %%callback%%, sorted by their name.
      */
     forEachFunction(callback) {
-        const names = Array.from(this.#functions.keys());
+        const names = Array.from(this._functions.keys());
         names.sort((a, b) => a.localeCompare(b));
         for (let i = 0; i < names.length; i++) {
             const name = names[i];
-            callback((this.#functions.get(name)), i);
+            callback((this._functions.get(name)), i);
         }
     }
     // Find an event definition by any means necessary (unless it is ambiguous)
-    #getEvent(key, values, forceUnique) {
+    _getEvent(key, values, forceUnique) {
         // EventTopic
         if (isHexString(key)) {
             const eventTopic = key.toLowerCase();
-            for (const fragment of this.#events.values()) {
+            for (const fragment of this._events.values()) {
                 if (eventTopic === fragment.topicHash) {
                     return fragment;
                 }
@@ -368,7 +368,7 @@ export class Interface {
         // It is a bare name, look up the function (will return null if ambiguous)
         if (key.indexOf("(") === -1) {
             const matching = [];
-            for (const [name, fragment] of this.#events) {
+            for (const [name, fragment] of this._events) {
                 if (name.split("(" /* fix:) */)[0] === key) {
                     matching.push(fragment);
                 }
@@ -406,7 +406,7 @@ export class Interface {
             return matching[0];
         }
         // Normalize the signature and lookup the function
-        const result = this.#events.get(EventFragment.from(key).format());
+        const result = this._events.get(EventFragment.from(key).format());
         if (result) {
             return result;
         }
@@ -417,7 +417,7 @@ export class Interface {
      *  event name or event signature that belongs to the ABI.
      */
     getEventName(key) {
-        const fragment = this.#getEvent(key, null, false);
+        const fragment = this._getEvent(key, null, false);
         assertArgument(fragment, "no matching event", "key", key);
         return fragment.name;
     }
@@ -432,17 +432,17 @@ export class Interface {
      *  the ABI, this will throw.
      */
     getEvent(key, values) {
-        return this.#getEvent(key, values || null, true);
+        return this._getEvent(key, values || null, true);
     }
     /**
      *  Iterate over all events, calling %%callback%%, sorted by their name.
      */
     forEachEvent(callback) {
-        const names = Array.from(this.#events.keys());
+        const names = Array.from(this._events.keys());
         names.sort((a, b) => a.localeCompare(b));
         for (let i = 0; i < names.length; i++) {
             const name = names[i];
-            callback((this.#events.get(name)), i);
+            callback((this._events.get(name)), i);
         }
     }
     /**
@@ -461,7 +461,7 @@ export class Interface {
             if (BuiltinErrors[selector]) {
                 return ErrorFragment.from(BuiltinErrors[selector].signature);
             }
-            for (const fragment of this.#errors.values()) {
+            for (const fragment of this._errors.values()) {
                 if (selector === fragment.selector) {
                     return fragment;
                 }
@@ -471,7 +471,7 @@ export class Interface {
         // It is a bare name, look up the function (will return null if ambiguous)
         if (key.indexOf("(") === -1) {
             const matching = [];
-            for (const [name, fragment] of this.#errors) {
+            for (const [name, fragment] of this._errors) {
                 if (name.split("(" /* fix:) */)[0] === key) {
                     matching.push(fragment);
                 }
@@ -499,7 +499,7 @@ export class Interface {
         if (key === "Panic(uint256)") {
             return ErrorFragment.from("error Panic(uint256)");
         }
-        const result = this.#errors.get(key);
+        const result = this._errors.get(key);
         if (result) {
             return result;
         }
@@ -509,11 +509,11 @@ export class Interface {
      *  Iterate over all errors, calling %%callback%%, sorted by their name.
      */
     forEachError(callback) {
-        const names = Array.from(this.#errors.keys());
+        const names = Array.from(this._errors.keys());
         names.sort((a, b) => a.localeCompare(b));
         for (let i = 0; i < names.length; i++) {
             const name = names[i];
-            callback((this.#errors.get(name)), i);
+            callback((this._errors.get(name)), i);
         }
     }
     // Get the 4-byte selector used by Solidity to identify a function
@@ -545,10 +545,10 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
     }
     */
     _decodeParams(params, data) {
-        return this.#abiCoder.decode(params, data);
+        return this._abiCoder.decode(params, data);
     }
     _encodeParams(params, values) {
-        return this.#abiCoder.encode(params, values);
+        return this._abiCoder.encode(params, values);
     }
     /**
      *  Encodes a ``tx.data`` object for deploying the Contract with
@@ -646,7 +646,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
         const bytes = getBytesCopy(data);
         if ((bytes.length % 32) === 0) {
             try {
-                return this.#abiCoder.decode(fragment.outputs, bytes);
+                return this._abiCoder.decode(fragment.outputs, bytes);
             }
             catch (error) {
                 message = "could not decode result data";
@@ -668,7 +668,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
             const ef = this.getError(selector);
             if (ef) {
                 try {
-                    const args = this.#abiCoder.decode(ef.inputs, data.slice(4));
+                    const args = this._abiCoder.decode(ef.inputs, data.slice(4));
                     error.revert = {
                         name: ef.name, signature: ef.format(), args
                     };
@@ -705,7 +705,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
             assertArgument(f, "unknown function", "fragment", fragment);
             fragment = f;
         }
-        return hexlify(this.#abiCoder.encode(fragment.outputs, values || []));
+        return hexlify(this._abiCoder.encode(fragment.outputs, values || []));
     }
     /*
         spelunk(inputs: Array<ParamType>, values: ReadonlyArray<any>, processfunc: (type: string, value: any) => Promise<any>): Promise<Array<any>> {
@@ -765,7 +765,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
             }
             // Check addresses are valid
             if (param.type === "address") {
-                this.#abiCoder.encode(["address"], [value]);
+                this._abiCoder.encode(["address"], [value]);
             }
             return zeroPadValue(hexlify(value), 32);
             //@TOOD should probably be return toHex(value, 32)
@@ -822,7 +822,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
                     throw new Error("not implemented");
                 }
                 else {
-                    topics.push(this.#abiCoder.encode([param.type], [value]));
+                    topics.push(this._abiCoder.encode([param.type], [value]));
                 }
             }
             else {
@@ -831,7 +831,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
             }
         });
         return {
-            data: this.#abiCoder.encode(dataTypes, dataValues),
+            data: this._abiCoder.encode(dataTypes, dataValues),
             topics: topics
         };
     }
@@ -866,8 +866,8 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
                 dynamic.push(false);
             }
         });
-        const resultIndexed = (topics != null) ? this.#abiCoder.decode(indexed, concat(topics)) : null;
-        const resultNonIndexed = this.#abiCoder.decode(nonIndexed, data, true);
+        const resultIndexed = (topics != null) ? this._abiCoder.decode(indexed, concat(topics)) : null;
+        const resultNonIndexed = this._abiCoder.decode(nonIndexed, data, true);
         //const result: (Array<any> & { [ key: string ]: any }) = [ ];
         const values = [];
         const keys = [];
@@ -916,7 +916,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
         if (!fragment) {
             return null;
         }
-        const args = this.#abiCoder.decode(fragment.inputs, data.slice(4));
+        const args = this._abiCoder.decode(fragment.inputs, data.slice(4));
         return new TransactionDescription(fragment, fragment.selector, args, value);
     }
     parseCallResult(data) {
@@ -950,7 +950,7 @@ getSelector(fragment: ErrorFragment | FunctionFragment): string {
         if (!fragment) {
             return null;
         }
-        const args = this.#abiCoder.decode(fragment.inputs, dataSlice(hexData, 4));
+        const args = this._abiCoder.decode(fragment.inputs, dataSlice(hexData, 4));
         return new ErrorDescription(fragment, fragment.selector, args);
     }
     /**

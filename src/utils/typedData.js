@@ -135,18 +135,18 @@ function encodeType(name, fields) {
 
 export class TypedDataEncoder {
     primaryType;
-    #types;
+    _types;
     get types() {
-        return JSON.parse(this.#types);
+        return JSON.parse(this._types);
     }
 
-    #fullTypes;
-    #encoderCache;
+    _fullTypes;
+    _encoderCache;
 
     constructor(types) {
-        this.#types = JSON.stringify(types);
-        this.#fullTypes = new Map();
-        this.#encoderCache = new Map();
+        this._types = JSON.stringify(types);
+        this._fullTypes = new Map();
+        this._encoderCache = new Map();
         // Link struct types to their direct child structs
         const links = new Map();
         // Link structs to structs which contain them as a child
@@ -207,20 +207,20 @@ export class TypedDataEncoder {
         for (const [name, set] of subtypes) {
             const st = Array.from(set);
             st.sort();
-            this.#fullTypes.set(name, encodeType(name, types[name]) + st.map((t) => encodeType(t, types[t])).join(""));
+            this._fullTypes.set(name, encodeType(name, types[name]) + st.map((t) => encodeType(t, types[t])).join(""));
         }
     }
 
     getEncoder(type) {
-        let encoder = this.#encoderCache.get(type);
+        let encoder = this._encoderCache.get(type);
         if (!encoder) {
-            encoder = this.#getEncoder(type);
-            this.#encoderCache.set(type, encoder);
+            encoder = this._getEncoder(type);
+            this._encoderCache.set(type, encoder);
         }
         return encoder;
     }
 
-    #getEncoder(type) {
+    _getEncoder(type) {
         // Basic encoder type (address, bool, uint256, etc)
         {
             const encoder = getBaseEncoder(type);
@@ -236,7 +236,7 @@ export class TypedDataEncoder {
             return (value) => {
                 assertArgument(!match[3] || parseInt(match[3]) === value.length, `array length mismatch; expected length ${parseInt(match[3])}`, "value", value);
                 let result = value.map(subEncoder);
-                if (this.#fullTypes.has(subtype)) {
+                if (this._fullTypes.has(subtype)) {
                     result = result.map(keccak256);
                 }
                 return keccak256(concat(result));
@@ -245,11 +245,11 @@ export class TypedDataEncoder {
         // Struct
         const fields = this.types[type];
         if (fields) {
-            const encodedType = id(this.#fullTypes.get(type));
+            const encodedType = id(this._fullTypes.get(type));
             return (value) => {
                 const values = fields.map(({name, type}) => {
                     const result = this.getEncoder(type)(value[name]);
-                    if (this.#fullTypes.has(type)) {
+                    if (this._fullTypes.has(type)) {
                         return keccak256(result);
                     }
                     return result;
@@ -262,7 +262,7 @@ export class TypedDataEncoder {
     }
 
     encodeType(name) {
-        const result = this.#fullTypes.get(name);
+        const result = this._fullTypes.get(name);
         assertArgument(result, `unknown type: ${JSON.stringify(name)}`, "name", name);
         return result;
     }

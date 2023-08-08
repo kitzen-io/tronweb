@@ -37,18 +37,18 @@ const regexIdPrefix = new RegExp("^([a-zA-Z$_][a-zA-Z0-9$_]*)");
 const regexId = new RegExp("^([a-zA-Z$_][a-zA-Z0-9$_]*)$");
 const regexType = new RegExp("^(trcToken|address|bool|bytes([0-9]*)|string|u?int([0-9]*))$");
 class TokenString {
-    #offset;
-    #tokens;
-    get offset() { return this.#offset; }
-    get length() { return this.#tokens.length - this.#offset; }
+    _offset;
+    _tokens;
+    get offset() { return this._offset; }
+    get length() { return this._tokens.length - this._offset; }
     constructor(tokens) {
-        this.#offset = 0;
-        this.#tokens = tokens.slice();
+        this._offset = 0;
+        this._tokens = tokens.slice();
     }
-    clone() { return new TokenString(this.#tokens); }
-    reset() { this.#offset = 0; }
-    #subTokenString(from = 0, to = 0) {
-        return new TokenString(this.#tokens.slice(from, to).map((t) => {
+    clone() { return new TokenString(this._tokens); }
+    reset() { this._offset = 0; }
+    _subTokenString(from = 0, to = 0) {
+        return new TokenString(this._tokens.slice(from, to).map((t) => {
             return Object.freeze(Object.assign({}, t, {
                 match: (t.match - from),
                 linkBack: (t.linkBack - from),
@@ -78,8 +78,8 @@ class TokenString {
         if (top.type !== "OPEN_PAREN") {
             throw new Error("bad start");
         }
-        const result = this.#subTokenString(this.#offset + 1, top.match + 1);
-        this.#offset = top.match + 1;
+        const result = this._subTokenString(this._offset + 1, top.match + 1);
+        this._offset = top.match + 1;
         return result;
     }
     // Pops and returns the items within "(" ITEM1 "," ITEM2 "," ... ")"
@@ -89,20 +89,20 @@ class TokenString {
             throw new Error("bad start");
         }
         const result = [];
-        while (this.#offset < top.match - 1) {
+        while (this._offset < top.match - 1) {
             const link = this.peek().linkNext;
-            result.push(this.#subTokenString(this.#offset + 1, link));
-            this.#offset = link;
+            result.push(this._subTokenString(this._offset + 1, link));
+            this._offset = link;
         }
-        this.#offset = top.match + 1;
+        this._offset = top.match + 1;
         return result;
     }
     // Returns the top Token, throwing if out of tokens
     peek() {
-        if (this.#offset >= this.#tokens.length) {
+        if (this._offset >= this._tokens.length) {
             throw new Error("out-of-bounds");
         }
-        return this.#tokens[this.#offset];
+        return this._tokens[this._offset];
     }
     // Returns the next value, if it is a keyword in `allowed`
     peekKeyword(allowed) {
@@ -120,13 +120,13 @@ class TokenString {
     // Returns the next token; throws if out of tokens
     pop() {
         const result = this.peek();
-        this.#offset++;
+        this._offset++;
         return result;
     }
     toString() {
         const tokens = [];
-        for (let i = this.#offset; i < this.#tokens.length; i++) {
-            const token = this.#tokens[i];
+        for (let i = this._offset; i < this._tokens.length; i++) {
+            const token = this._tokens[i];
             tokens.push(`${token.type}:${token.text}`);
         }
         return `<TokenString ${tokens.join(" ")}>`;
@@ -524,7 +524,7 @@ export class ParamType {
         }
         return process(this.type, value);
     }
-    #walkAsync(promises, value, process, setValue) {
+    _walkAsync(promises, value, process, setValue) {
         if (this.isArray()) {
             if (!Array.isArray(value)) {
                 throw new Error("invalid array value");
@@ -535,7 +535,7 @@ export class ParamType {
             const childType = this.arrayChildren;
             const result = value.slice();
             result.forEach((value, index) => {
-                childType.#walkAsync(promises, value, process, (value) => {
+                childType._walkAsync(promises, value, process, (value) => {
                     result[index] = value;
                 });
             });
@@ -567,7 +567,7 @@ export class ParamType {
                 throw new Error("array is wrong length");
             }
             result.forEach((value, index) => {
-                components[index].#walkAsync(promises, value, process, (value) => {
+                components[index]._walkAsync(promises, value, process, (value) => {
                     result[index] = value;
                 });
             });
@@ -592,7 +592,7 @@ export class ParamType {
     async walkAsync(value, process) {
         const promises = [];
         const result = [value];
-        this.#walkAsync(promises, value, process, (value) => {
+        this._walkAsync(promises, value, process, (value) => {
             result[0] = value;
         });
         if (promises.length) {
