@@ -1,7 +1,7 @@
 import {assertArgument, concat, defineProperties, getBigInt, getBytes, hexlify, id, keccak256, mask, toBeHex, toTwos, zeroPadValue} from "ethers";
 import {ADDRESS_PREFIX, ADDRESS_PREFIX_REGEX} from './address';
 import {byteArray2hexStr} from "./code"
-import {utils} from "./index"
+import utils from "./index"
 import {decodeBase58Address} from "./crypto"
 
 function toHex(address) {

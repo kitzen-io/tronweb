@@ -1,6 +1,6 @@
 {
     "name": "@kitzen/tronweb",
-    "version": "5.3.0",
+    "version": "5.3.1",
     "description": "JavaScript SDK that encapsulates the TRON HTTP API",
     "main": "src/index.js",
     "keywords": [

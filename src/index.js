@@ -2,7 +2,7 @@ import providers from './lib/providers';
 import utils from './utils';
 import BigNumber from 'bignumber.js';
 import EventEmitter from 'eventemitter3';
-import { version } from './../package.json';
+import packageJson from './../package.json';
 import semver from 'semver';
 import injectpromise from 'injectpromise';
 
@@ -27,7 +27,7 @@ export default class TronWeb extends EventEmitter {
     static Contract = Contract;
     static Plugin = Plugin;
     static Event = Event;
-    static version = version;
+    static version = packageJson.version;
     static utils = utils;
 
     constructor(options = false,
