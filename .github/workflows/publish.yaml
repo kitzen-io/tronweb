@@ -26,13 +26,13 @@ jobs:
         run: yarn install --frozen-lockfile
       - name: Build
         run: yarn build
-      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
-        run: npm audit signatures
       - uses: EndBug/version-check@v2
         id: version-check
         with:
-          file-url: https://unpkg.com/@kitzen/wallet-core-essentials@latest/package.json
+          file-url: https://unpkg.com/@kitzen/tronweb@latest/package.json
           static-checking: localIsNew
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: npm audit signatures
       - run: npm publish
         if: steps.version-check.outputs.changed == 'true'
         env:
